@@ -13,7 +13,7 @@ class EmployeeApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Employee Profile',
 
-      // Named Routes
+      // Named Route
       routes: {
         '/details': (context) => const EmployeeDetailsPage(),
       },
@@ -24,11 +24,42 @@ class EmployeeApp extends StatelessWidget {
 }
 
 // --------------------------------------------------
-// EMPLOYEE PROFILE SCREEN
+// EMPLOYEE PROFILE PAGE
 // --------------------------------------------------
 
-class EmployeeProfilePage extends StatelessWidget {
+class EmployeeProfilePage extends StatefulWidget {
   const EmployeeProfilePage({super.key});
+
+  @override
+  State<EmployeeProfilePage> createState() =>
+      _EmployeeProfilePageState();
+}
+
+class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
+
+  // State variables
+  String employeeName = 'SREE VARSHITHA';
+  String designation = 'Software Engineer';
+  String department = 'CSE';
+
+  // Change employee information
+  bool isUpdated = false;
+
+void updateProfile() {
+  setState(() {
+    if (isUpdated) {
+      employeeName = 'SREE VARSHITHA';
+      designation = 'Software Engineer';
+      department = 'CSE';
+      isUpdated = false;
+    } else {
+      employeeName = 'SREE VARSHITHA';
+      designation = 'Senior Software Engineer';
+      department = 'Computer Science';
+      isUpdated = true;
+    }
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -62,9 +93,9 @@ class EmployeeProfilePage extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 // Employee Name
-                const Text(
-                  'SREE VARSHITHA',
-                  style: TextStyle(
+                Text(
+                  employeeName,
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
@@ -73,16 +104,16 @@ class EmployeeProfilePage extends StatelessWidget {
                 const SizedBox(height: 8),
 
                 // Designation
-                const Text(
-                  'Software Engineer',
-                  style: TextStyle(
+                Text(
+                  designation,
+                  style: const TextStyle(
                     fontSize: 18,
                   ),
                 ),
 
                 const SizedBox(height: 25),
 
-                // Employee Information
+                // Employee ID
                 const Row(
                   children: [
                     Icon(Icons.badge),
@@ -96,12 +127,13 @@ class EmployeeProfilePage extends StatelessWidget {
 
                 const SizedBox(height: 15),
 
+                // Email
                 const Row(
                   children: [
                     Icon(Icons.email),
                     SizedBox(width: 15),
                     Text(
-                      'Email:varshitha@gmail.com',
+                      'Email: varshitha@gmail.com',
                       style: TextStyle(fontSize: 16),
                     ),
                   ],
@@ -109,6 +141,7 @@ class EmployeeProfilePage extends StatelessWidget {
 
                 const SizedBox(height: 15),
 
+                // Phone
                 const Row(
                   children: [
                     Icon(Icons.phone),
@@ -120,16 +153,48 @@ class EmployeeProfilePage extends StatelessWidget {
                   ],
                 ),
 
+                const SizedBox(height: 15),
+
+                // Department
+                Row(
+                  children: [
+                    const Icon(Icons.school),
+                    const SizedBox(width: 15),
+                    Text(
+                      'Department: $department',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+
                 const SizedBox(height: 30),
 
-                // Navigator.push()
+                // Update Profile Button
+  
+ElevatedButton.icon(
+  onPressed: updateProfile,
+  icon: Icon(
+    isUpdated ? Icons.restore : Icons.edit,
+  ),
+  label: Text(
+    isUpdated ? 'Restore Profile' : 'Update Profile',
+  ),
+),
+
+                const SizedBox(height: 15),
+
+                // Navigate to Details
                 ElevatedButton.icon(
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            const EmployeeDetailsPage(),
+                            EmployeeDetailsPage(
+                              name: employeeName,
+                              designation: designation,
+                              department: department,
+                            ),
                       ),
                     );
                   },
@@ -139,7 +204,7 @@ class EmployeeProfilePage extends StatelessWidget {
 
                 const SizedBox(height: 15),
 
-                // Navigator.pushNamed()
+                // Named Route
                 ElevatedButton.icon(
                   onPressed: () {
                     Navigator.pushNamed(
@@ -160,11 +225,20 @@ class EmployeeProfilePage extends StatelessWidget {
 }
 
 // --------------------------------------------------
-// EMPLOYEE DETAILS SCREEN
+// EMPLOYEE DETAILS PAGE
 // --------------------------------------------------
 
 class EmployeeDetailsPage extends StatelessWidget {
-  const EmployeeDetailsPage({super.key});
+  final String name;
+  final String designation;
+  final String department;
+
+  const EmployeeDetailsPage({
+    super.key,
+    this.name = 'SREE VARSHITHA',
+    this.designation = 'Software Engineer',
+    this.department = 'CSE',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -186,7 +260,6 @@ class EmployeeDetailsPage extends StatelessWidget {
             child: Column(
               children: [
 
-                // Employee Icon
                 const CircleAvatar(
                   radius: 60,
                   child: Icon(
@@ -207,9 +280,9 @@ class EmployeeDetailsPage extends StatelessWidget {
 
                 const SizedBox(height: 25),
 
-                const Text(
-                  'Name: sree varshitha',
-                  style: TextStyle(fontSize: 18),
+                Text(
+                  'Name: $name',
+                  style: const TextStyle(fontSize: 18),
                 ),
 
                 const SizedBox(height: 12),
@@ -221,22 +294,22 @@ class EmployeeDetailsPage extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                const Text(
-                  'Department: CSE',
-                  style: TextStyle(fontSize: 18),
+                Text(
+                  'Department: $department',
+                  style: const TextStyle(fontSize: 18),
+                ),
+
+                const SizedBox(height: 12),
+
+                Text(
+                  'Designation: $designation',
+                  style: const TextStyle(fontSize: 18),
                 ),
 
                 const SizedBox(height: 12),
 
                 const Text(
-                  'Designation: Software Engineer',
-                  style: TextStyle(fontSize: 18),
-                ),
-
-                const SizedBox(height: 12),
-
-                const Text(
-                  'Email: varshitha @gmail.com',
+                  'Email: varshitha@gmail.com',
                   style: TextStyle(fontSize: 18),
                 ),
 
@@ -249,7 +322,7 @@ class EmployeeDetailsPage extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                // Navigator.pop()
+                // Back button
                 ElevatedButton.icon(
                   onPressed: () {
                     Navigator.pop(context);
