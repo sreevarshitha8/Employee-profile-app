@@ -4,7 +4,6 @@ void main() {
   runApp(const EmployeeApp());
 }
 
-// APP THEME
 class EmployeeApp extends StatelessWidget {
   const EmployeeApp({super.key});
 
@@ -13,47 +12,100 @@ class EmployeeApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Employee Profile',
-
       theme: ThemeData(
         primarySwatch: Colors.indigo,
-        scaffoldBackgroundColor: const Color(0xFFF4F6FB),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.indigo,
           foregroundColor: Colors.white,
           centerTitle: true,
         ),
-        cardTheme: CardThemeData(
-          color: Colors.white,
-          elevation: 3,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.indigo,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 14,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
       ),
-
-      routes: {
-        '/details': (context) => const EmployeeDetailsPage(),
-      },
-
       home: const EmployeeProfilePage(),
     );
   }
 }
 
-// EMPLOYEE PROFILE PAGE
+// BACKGROUND IMAGE
+class BackgroundLayout extends StatelessWidget {
+  final Widget child;
+
+  const BackgroundLayout({
+    super.key,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Colourful gradient background
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF89F7FE),
+                Color(0xFF66A6FF),
+                Color(0xFFB57BEE),
+                Color(0xFFFFC3E6),
+              ],
+            ),
+          ),
+        ),
+
+        // Decorative circles
+        Positioned(
+          top: -70,
+          right: -45,
+          child: _backgroundCircle(
+            size: 220,
+            color: Colors.white.withOpacity(0.20),
+          ),
+        ),
+
+        Positioned(
+          bottom: 40,
+          left: -65,
+          child: _backgroundCircle(
+            size: 180,
+            color: Colors.purple.withOpacity(0.12),
+          ),
+        ),
+
+        Positioned(
+          top: 250,
+          right: -35,
+          child: _backgroundCircle(
+            size: 100,
+            color: Colors.pink.withOpacity(0.15),
+          ),
+        ),
+
+        // Employee profile content
+        SafeArea(child: child),
+      ],
+    );
+  }
+
+  Widget _backgroundCircle({
+    required double size,
+    required Color color,
+  }) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+      ),
+    );
+  }
+}
+
+
+// EMPLOYEE PROFILE FORM
 class EmployeeProfilePage extends StatefulWidget {
   const EmployeeProfilePage({super.key});
 
@@ -62,138 +114,286 @@ class EmployeeProfilePage extends StatefulWidget {
       _EmployeeProfilePageState();
 }
 
-class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
-  String employeeName = 'SREE VARSHITHA';
+class _EmployeeProfilePageState
+    extends State<EmployeeProfilePage> {
+  final _formKey = GlobalKey<FormState>();
+
+  final nameController =
+      TextEditingController(text: 'Sree Varshitha');
+  final emailController =
+      TextEditingController(text: 'sree@gmail.com');
+  final phoneController =
+      TextEditingController(text: '9876543210');
+  final designationController =
+      TextEditingController(text: 'Software Engineer');
+
+  String employeeName = 'Sree Varshitha';
+  String email = 'sree@gmail.com';
+  String phone = '9876543210';
   String designation = 'Software Engineer';
-  String department = 'CSE';
 
-  bool isUpdated = false;
+  bool isSaved = false;
 
-  void updateProfile() {
+  // VALIDATE AND SAVE PROFILE
+  void saveProfile() {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        employeeName = nameController.text.trim();
+        email = emailController.text.trim();
+        phone = phoneController.text.trim();
+        designation = designationController.text.trim();
+        isSaved = true;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+         content: Text('Profile saved successfully!'),
+       ),
+      );
+   }
+ }
+ 
+
+  // RESTORE ORIGINAL PROFILE
+  void restoreProfile() {
     setState(() {
-      if (isUpdated) {
-        employeeName = 'SREE VARSHITHA';
-        designation = 'Software Engineer';
-        department = 'CSE';
-        isUpdated = false;
-      } else {
-        employeeName = 'SREE VARSHITHA';
-              designation = 'Senior Software Engineer';
-        department = 'Computer Science';
-        isUpdated = true;
-      }
+      nameController.text = 'Sree Varshitha';
+      emailController.text = 'sree@gmail.com';
+      phoneController.text = '9876543210';
+      designationController.text = 'Software Engineer';
+
+      employeeName = 'Sree Varshitha';
+      email = 'sree@gmail.com';
+      phone = '9876543210';
+      designation = 'Software Engineer';
+
+      isSaved = false;
     });
+
+    _formKey.currentState?.reset();
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    designationController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('Employee Profile'),
       ),
+      body: BackgroundLayout(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 550),
+              child: Card(
+                color: Colors.white.withOpacity(0.96),
+                elevation: 5,
+                child: Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.stretch,
+                      children: [
+                        const CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Color(0xFFE0E7FF),
+                          child: Icon(
+                            Icons.person,
+                            size: 60,
+                            color: Colors.indigo,
+                          ),
+                        ),
 
-      body: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: EmployeeCard(
-                child: Column(
-                  children: [
-                    const CircleAvatar(
-                      radius: 65,
-                      backgroundColor: Color(0xFFE0E7FF),
-                      child: Icon(
-                        Icons.person,
-                        size: 70,
-                        color: Colors.indigo,
-                      ),
-                    ),
+                        const SizedBox(height: 12),
 
-                    const SizedBox(height: 18),
+                        Text(
+                          employeeName,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 25,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
 
-                    Text(
-                      employeeName,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
+                        Text(
+                          designation,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            color: Colors.indigo,
+                          ),
+                        ),
 
-                    const SizedBox(height: 6),
+                        const SizedBox(height: 25),
 
-                    Text(
-                      designation,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium
-                          ?.copyWith(color: Colors.indigo),
-                    ),
+                        const Text(
+                          'Edit Employee Information',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
 
-                    const SizedBox(height: 24),
+                        const SizedBox(height: 18),
 
-                    EmployeeInfoRow(
-                      icon: Icons.badge,
-                      label: 'Employee ID',
-                      value: 'EMP101',
-                    ),
+                        // NAME FIELD
+                        TextFormField(
+                          controller: nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Employee Name',
+                            prefixIcon: Icon(Icons.person),
+                            border: OutlineInputBorder(),
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                          validator: (value) {
+                            if (value == null ||
+                                value.trim().isEmpty) {
+                              return 'Please enter employee name';
+                            }
+                            return null;
+                          },
+                        ),
 
-                    EmployeeInfoRow(
-                      icon: Icons.email,
-                      label: 'Email',
-                      value: 'employee@gmail.com',
-                    ),
+                        const SizedBox(height: 16),
 
-                    EmployeeInfoRow(
-                      icon: Icons.phone,
-                      label: 'Phone',
-                      value: '9876543210',
-                    ),
+                        // EMAIL FIELD
+                        TextFormField(
+                          controller: emailController,
+                          keyboardType:
+                              TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'Email Address',
+                            prefixIcon: Icon(Icons.email),
+                            border: OutlineInputBorder(),
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                          validator: (value) {
+                            if (value == null ||
+                                value.trim().isEmpty) {
+                              return 'Please enter email';
+                            }
 
-                    EmployeeInfoRow(
-                      icon: Icons.business,
-                      label: 'Department',
-                      value: department,
-                    ),
+                            if (!RegExp(
+                              r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                            ).hasMatch(value.trim())) {
+                              return 'Enter a valid email';
+                            }
 
-                    const SizedBox(height: 24),
+                            return null;
+                          },
+                        ),
 
-                    CustomButton(
-                      text: isUpdated
-                          ? 'Restore Profile'
-                          : 'Update Profile',
-                      icon: isUpdated ? Icons.restore : Icons.edit,
-                      onPressed: updateProfile,
-                    ),
+                        const SizedBox(height: 16),
 
-                    const SizedBox(height: 12),
+                        // PHONE FIELD
+                        TextFormField(
+                          controller: phoneController,
+                          keyboardType: TextInputType.phone,
+                          maxLength: 10,
+                          decoration: const InputDecoration(
+                            labelText: 'Phone Number',
+                            prefixIcon: Icon(Icons.phone),
+                            border: OutlineInputBorder(),
+                            filled: true,
+                            fillColor: Colors.white,
+                            counterText: '',
+                          ),
+                          validator: (value) {
+                            if (value == null ||
+                                !RegExp(r'^[0-9]{10}$')
+                                    .hasMatch(value.trim())) {
+                              return 'Enter a valid 10-digit number';
+                            }
+                            return null;
+                          },
+                        ),
 
-                    CustomButton(
-                      text: 'View Details',
-                      icon: Icons.arrow_forward,
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EmployeeDetailsPage(
-                              name: employeeName,
-                              designation: designation,
-                              department: department,
+                        const SizedBox(height: 16),
+
+                        // DESIGNATION FIELD
+                        TextFormField(
+                          controller: designationController,
+                          decoration: const InputDecoration(
+                            labelText: 'Designation',
+                            prefixIcon: Icon(Icons.work),
+                            border: OutlineInputBorder(),
+                            filled: true,
+                            fillColor: Colors.white,
+                          ),
+                          validator: (value) {
+                            if (value == null ||
+                                value.trim().isEmpty) {
+                              return 'Please enter designation';
+                            }
+                            return null;
+                          },
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        ElevatedButton.icon(
+                          onPressed: saveProfile,
+                          icon: const Icon(Icons.save),
+                          label: const Text('Save Profile'),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        OutlinedButton.icon(
+                          onPressed: restoreProfile,
+                          icon: const Icon(Icons.restore),
+                          label: const Text('Restore Original'),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    EmployeeDetailsPage(
+                                  name: employeeName,
+                                  email: email,
+                                  phone: phone,
+                                  designation: designation,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.arrow_forward),
+                          label: const Text('View Saved Details'),
+                        ),
+
+                        if (isSaved) ...[
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Profile saved successfully.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        );
-                      },
+                        ],
+                      ],
                     ),
-
-                    const SizedBox(height: 12),
-
-                    CustomButton(
-                      text: 'Open Named Route',
-                      icon: Icons.open_in_new,
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/details');
-                      },
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -204,101 +404,90 @@ class _EmployeeProfilePageState extends State<EmployeeProfilePage> {
   }
 }
 
-// EMPLOYEE DETAILS PAGE
+// EMPLOYEE DETAILS SCREEN
 class EmployeeDetailsPage extends StatelessWidget {
   final String name;
+  final String email;
+  final String phone;
   final String designation;
-  final String department;
 
   const EmployeeDetailsPage({
     super.key,
-    this.name = 'SREE VARSHITHA',
-    this.designation = 'Software Engineer',
-    this.department = 'CSE',
+    required this.name,
+    required this.email,
+    required this.phone,
+    required this.designation,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('Employee Details'),
       ),
-
-      body: SingleChildScrollView(
+      body: BackgroundLayout(
         child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: EmployeeCard(
-                child: Column(
-                  children: [
-                    const CircleAvatar(
-                      radius: 55,
-                      backgroundColor: Color(0xFFE0E7FF),
-                      child: Icon(
-                        Icons.person,
-                        size: 60,
-                        color: Colors.indigo,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 500),
+              child: Card(
+                color: Colors.white.withOpacity(0.96),
+                elevation: 5,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircleAvatar(
+                        radius: 55,
+                        backgroundColor: Color(0xFFE0E7FF),
+                        child: Icon(
+                          Icons.person,
+                          size: 65,
+                          color: Colors.indigo,
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 18),
+                      const SizedBox(height: 18),
 
-                    Text(
-                      'Employee Details',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
+                      const Text(
+                        'Employee Details',
+                        style: TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 22),
 
-                    EmployeeInfoRow(
-                      icon: Icons.person,
-                      label: 'Name',
-                      value: name,
-                    ),
+                      DetailRow(
+                        label: 'Employee ID',
+                        value: 'EMP101',
+                      ),
+                      DetailRow(label: 'Name', value: name),
+                      DetailRow(
+                        label: 'Designation',
+                        value: designation,
+                      ),
+                      DetailRow(label: 'Email', value: email),
+                      DetailRow(label: 'Phone', value: phone),
 
-                    EmployeeInfoRow(
-                      icon: Icons.badge,
-                      label: 'Employee ID',
-                      value: 'EMP101',
-                    ),
+                      const SizedBox(height: 20),
 
-                    EmployeeInfoRow(
-                      icon: Icons.work,
-                      label: 'Designation',
-                      value: designation,
-                    ),
-
-                    EmployeeInfoRow(
-                      icon: Icons.business,
-                      label: 'Department',
-                      value: department,
-                    ),
-
-                    EmployeeInfoRow(
-                      icon: Icons.email,
-                      label: 'Email',
-                      value: 'employee@gmail.com',
-                    ),
-
-                    EmployeeInfoRow(
-                      icon: Icons.phone,
-                      label: 'Phone',
-                      value: '9876543210',
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    CustomButton(
-                      text: 'Back to Profile',
-                      icon: Icons.arrow_back,
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ],
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          icon: const Icon(Icons.arrow_back),
+                          label: const Text('Back to Profile'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -309,15 +498,13 @@ class EmployeeDetailsPage extends StatelessWidget {
   }
 }
 
-// REUSABLE EMPLOYEE INFORMATION ROW
-class EmployeeInfoRow extends StatelessWidget {
-  final IconData icon;
+// REUSABLE DETAIL ROW
+class DetailRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const EmployeeInfoRow({
+  const DetailRow({
     super.key,
-    required this.icon,
     required this.label,
     required this.value,
   });
@@ -325,76 +512,24 @@ class EmployeeInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.indigo),
-          const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  value,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
+          Expanded(
+            flex: 3,
+            child: Text(value),
+          ),
         ],
-      ),
-    );
-  }
-}
-
-// REUSABLE CARD WIDGET
-class EmployeeCard extends StatelessWidget {
-  final Widget child;
-
-  const EmployeeCard({
-    super.key,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: child,
-      ),
-    );
-  }
-}
-
-// REUSABLE BUTTON WIDGET
-class CustomButton extends StatelessWidget {
-  final String text;
-  final IconData icon;
-  final VoidCallback onPressed;
-
-  const CustomButton({
-    super.key,
-    required this.text,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon),
-        label: Text(text),
       ),
     );
   }
