@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(const EmployeeApp());
@@ -28,38 +30,6 @@ class EmployeeApp extends StatelessWidget {
   }
 }
 
-// REUSABLE DESK-PHOTO BACKGROUND
-class DeskBackground extends StatelessWidget {
-  final Widget child;
-
-  const DeskBackground({
-    super.key,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Image.asset(
-          'assets/background.jpg',
-          fit: BoxFit.cover,
-          alignment: Alignment.center,
-        ),
-
-        // Light overlay keeps the form readable.
-        Container(
-          color: Colors.white.withOpacity(0.24),
-        ),
-
-        SafeArea(child: child),
-      ],
-    );
-  }
-}
-
-// EMPLOYEE PROFILE PAGE
 class EmployeeProfilePage extends StatefulWidget {
   const EmployeeProfilePage({super.key});
 
@@ -89,41 +59,44 @@ class _EmployeeProfilePageState
 
   bool isSaved = false;
 
-  late final AnimationController _controller;
-  late final Animation<double> _fade;
-  late final Animation<Offset> _slide;
+  List<dynamic> apiUsers = [];
+  bool isLoading = false;
+  String? apiError;
+
+  late final AnimationController _animationController;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    _controller = AnimationController(
+    _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 800),
     );
 
-    _fade = CurvedAnimation(
-      parent: _controller,
+    _fadeAnimation = CurvedAnimation(
+      parent: _animationController,
       curve: Curves.easeIn,
     );
 
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.08),
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.06),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(
-        parent: _controller,
+        parent: _animationController,
         curve: Curves.easeOutCubic,
       ),
     );
 
-    // Animations start automatically when the page opens.
-    _controller.forward();
+    _animationController.forward();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _animationController.dispose();
     nameController.dispose();
     emailController.dispose();
     phoneController.dispose();
@@ -144,7 +117,6 @@ class _EmployeeProfilePageState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Profile saved successfully!'),
-          backgroundColor: Color(0xFF246B55),
         ),
       );
     }
@@ -168,538 +140,357 @@ class _EmployeeProfilePageState
     _formKey.currentState?.reset();
   }
 
+  // EXPERIMENT 9: FETCH DATA FROM REST API
+  Future<void> fetchUsers() async {
+    setState(() {
+      isLoading = true;
+      apiError = null;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://jsonplaceholder.typicode.com/users'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> decodedData =
+            jsonDecode(response.body) as List<dynamic>;
+
+        if (!mounted) return;
+
+        setState(() {
+          apiUsers = decodedData;
+          isLoading = false;
+        });
+      } else {
+        throw Exception(
+          'Server returned status ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        apiError = 'Unable to fetch data. Check your internet connection.';
+        isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Employee Profile',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
+        title: const Text('Employee Profile'),
       ),
-      body: DeskBackground(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(18),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: FadeTransition(
-                opacity: _fade,
-                child: SlideTransition(
-                  position: _slide,
-                  child: Container(
-                    padding: const EdgeInsets.all(25),
-                    decoration: BoxDecoration(
-                      color: const Color(0xF7FFFFFF),
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(
-                        color: Colors.white,
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF20364D)
-                              .withOpacity(0.20),
-                          blurRadius: 24,
-                          offset: const Offset(0, 10),
+      body: Stack(
+        children: [
+          // PROFESSIONAL DESK BACKGROUND
+          Positioned.fill(
+            child: Image.asset(
+              'assets/background.jpg',
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned.fill(
+            child: Container(
+              color: Colors.white.withOpacity(0.30),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(18),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: 550,
+                  ),
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xF7FFFFFF),
+                          borderRadius: BorderRadius.circular(22),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.18),
+                              blurRadius: 22,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.stretch,
-                        children: [
-                          const CircleAvatar(
-                            radius: 43,
-                            backgroundColor: Color(0xFFDCE8F3),
-                            child: Icon(
-                              Icons.person,
-                              size: 55,
-                              color: Color(0xFF244B70),
-                            ),
-                          ),
-
-                          const SizedBox(height: 13),
-
-                          AnimatedSwitcher(
-                            duration: const Duration(
-                              milliseconds: 350,
-                            ),
-                            child: Text(
-                              employeeName,
-                              key: ValueKey(employeeName),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 25,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF243B53),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 5),
-
-                          AnimatedSwitcher(
-                            duration: const Duration(
-                              milliseconds: 350,
-                            ),
-                            child: Text(
-                              designation,
-                              key: ValueKey(designation),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Color(0xFF486581),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 27),
-
-                          const Text(
-                            'Employee Information',
-                            style: TextStyle(
-                              fontSize: 21,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF243B53),
-                            ),
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          _field(
-                            controller: nameController,
-                            label: 'Employee Name',
-                            icon: Icons.person_outline,
-                            validator: (value) {
-                              if (value == null ||
-                                  value.trim().isEmpty) {
-                                return 'Enter employee name';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          _field(
-                            controller: emailController,
-                            label: 'Email Address',
-                            icon: Icons.email_outlined,
-                            keyboardType:
-                                TextInputType.emailAddress,
-                            validator: (value) {
-                              if (value == null ||
-                                  !RegExp(
-                                    r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                                  ).hasMatch(value.trim())) {
-                                return 'Enter a valid email';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          _field(
-                            controller: phoneController,
-                            label: 'Phone Number',
-                            icon: Icons.phone_outlined,
-                            keyboardType: TextInputType.phone,
-                            validator: (value) {
-                              if (value == null ||
-                                  !RegExp(r'^[0-9]{10}$')
-                                      .hasMatch(value.trim())) {
-                                return 'Enter a 10-digit phone number';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          _field(
-                            controller: designationController,
-                            label: 'Designation',
-                            icon: Icons.work_outline,
-                            validator: (value) {
-                              if (value == null ||
-                                  value.trim().isEmpty) {
-                                return 'Enter designation';
-                              }
-                              return null;
-                            },
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          SizedBox(
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: saveProfile,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    const Color(0xFF244B70),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(12),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.stretch,
+                            children: [
+                              const CircleAvatar(
+                                radius: 43,
+                                backgroundColor: Color(0xFFDCE8F3),
+                                child: Icon(
+                                  Icons.person,
+                                  size: 55,
+                                  color: Color(0xFF244B70),
                                 ),
                               ),
-                              child: const Text(
-                                'Save Profile',
-                                style: TextStyle(
+                              const SizedBox(height: 12),
+                              Text(
+                                employeeName,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF243B53),
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                designation,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Color(0xFF486581),
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 11),
-
-                          OutlinedButton(
-                            onPressed: restoreProfile,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor:
-                                  const Color(0xFF244B70),
-                              side: const BorderSide(
-                                color: Color(0xFF8AA6C1),
+                              const SizedBox(height: 26),
+                              const Text(
+                                'Employee Information',
+                                style: TextStyle(
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF243B53),
+                                ),
                               ),
-                              padding:
-                                  const EdgeInsets.symmetric(
-                                vertical: 14,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text('Restore Original'),
-                          ),
+                              const SizedBox(height: 16),
 
-                          const SizedBox(height: 11),
+                              // EMPLOYEE NAME
+                              TextFormField(
+                                controller: nameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Employee Name',
+                                  prefixIcon: Icon(Icons.person_outline),
+                                  border: OutlineInputBorder(),
+                                ),
+                                validator: (value) {
+                                  if (value == null ||
+                                      value.trim().isEmpty) {
+                                    return 'Enter employee name';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 14),
 
-                          ElevatedButton(
-                            onPressed: () {
-                              if (!isSaved) {
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Please save the profile first.',
+                              // EMAIL
+                              TextFormField(
+                                controller: emailController,
+                                keyboardType:
+                                    TextInputType.emailAddress,
+                                decoration: const InputDecoration(
+                                  labelText: 'Email Address',
+                                  prefixIcon: Icon(Icons.email_outlined),
+                                  border: OutlineInputBorder(),
+                                ),
+                                validator: (value) {
+                                  if (value == null ||
+                                      !RegExp(
+                                        r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                                      ).hasMatch(value.trim())) {
+                                    return 'Enter a valid email';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 14),
+
+                              // PHONE
+                              TextFormField(
+                                controller: phoneController,
+                                keyboardType: TextInputType.phone,
+                                decoration: const InputDecoration(
+                                  labelText: 'Phone Number',
+                                  prefixIcon: Icon(Icons.phone_outlined),
+                                  border: OutlineInputBorder(),
+                                ),
+                                validator: (value) {
+                                  if (value == null ||
+                                      !RegExp(r'^[0-9]{10}$')
+                                          .hasMatch(value.trim())) {
+                                    return 'Enter a 10-digit phone number';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 14),
+
+                              // DESIGNATION
+                              TextFormField(
+                                controller: designationController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Designation',
+                                  prefixIcon: Icon(Icons.work_outline),
+                                  border: OutlineInputBorder(),
+                                ),
+                                validator: (value) {
+                                  if (value == null ||
+                                      value.trim().isEmpty) {
+                                    return 'Enter designation';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 20),
+
+                              ElevatedButton(
+                                onPressed: saveProfile,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      const Color(0xFF244B70),
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                ),
+                                child: const Text('Save Profile'),
+                              ),
+
+                              OutlinedButton(
+                                onPressed: restoreProfile,
+                                child: const Text('Restore Original'),
+                              ),
+
+                              if (isSaved)
+                                const Padding(
+                                  padding: EdgeInsets.all(8),
+                                  child: Text(
+                                    'Profile saved successfully.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                );
-                                return;
-                              }
+                                ),
 
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      EmployeeDetailsPage(
-                                    name: employeeName,
-                                    email: email,
-                                    phone: phone,
-                                    designation: designation,
+                              const SizedBox(height: 20),
+                              const Divider(),
+                              const SizedBox(height: 8),
+
+                              // EXPERIMENT 9 API SECTION
+                              const Text(
+                                'Employee Directory (REST API)',
+                                style: TextStyle(
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF243B53),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Fetch sample user records from an online REST API.',
+                                style: TextStyle(
+                                  color: Color(0xFF486581),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+
+                              ElevatedButton(
+                                onPressed:
+                                    isLoading ? null : fetchUsers,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      const Color(0xFF397D83),
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(
+                                    vertical: 14,
                                   ),
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  const Color(0xFF397D83),
-                              foregroundColor: Colors.white,
-                              padding:
-                                  const EdgeInsets.symmetric(
-                                vertical: 14,
+                                child: const Text('Fetch API Data'),
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text('View Saved Details'),
-                          ),
 
-                          AnimatedSize(
-                            duration: const Duration(
-                              milliseconds: 300,
-                            ),
-                            curve: Curves.easeInOut,
-                            child: isSaved
-                                ? const Padding(
-                                    padding: EdgeInsets.only(top: 14),
-                                    child: Text(
-                                      'Profile saved successfully.',
+                              const SizedBox(height: 12),
+
+                              if (isLoading)
+                                const Padding(
+                                  padding: EdgeInsets.all(20),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+
+                              if (apiError != null)
+                                Column(
+                                  children: [
+                                    Text(
+                                      apiError!,
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Color(0xFF246B55),
-                                        fontWeight: FontWeight.w600,
+                                      style: const TextStyle(
+                                        color: Colors.red,
                                       ),
                                     ),
-                                  )
-                                : const SizedBox.shrink(),
+                                    TextButton(
+                                      onPressed: fetchUsers,
+                                      child: const Text('Try Again'),
+                                    ),
+                                  ],
+                                ),
+
+                              if (apiUsers.isNotEmpty)
+                                SizedBox(
+                                  height: 350,
+                                  child: ListView.builder(
+                                    itemCount: apiUsers.length,
+                                    itemBuilder: (context, index) {
+                                      final user =
+                                          apiUsers[index]
+                                              as Map<String, dynamic>;
+
+                                      return Card(
+                                        margin:
+                                            const EdgeInsets.symmetric(
+                                          vertical: 6,
+                                        ),
+                                        child: ListTile(
+                                          leading: CircleAvatar(
+                                            backgroundColor:
+                                                const Color(0xFFDCE8F3),
+                                            child: Text(
+                                              user['id'].toString(),
+                                            ),
+                                          ),
+                                          title: Text(
+                                            user['name'].toString(),
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          subtitle: Text(
+                                            '${user['email']}\n'
+                                            '${user['company']['name']}',
+                                          ),
+                                          isThreeLine: true,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _field({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    required String? Function(String?) validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(
-          icon,
-          color: const Color(0xFF486581),
-        ),
-        filled: true,
-        fillColor: const Color(0xFFF7FAFC),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 17,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFBCCCDC),
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFFBCCCDC),
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Color(0xFF397D83),
-            width: 2,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// EMPLOYEE DETAILS SCREEN
-class EmployeeDetailsPage extends StatelessWidget {
-  final String name;
-  final String email;
-  final String phone;
-  final String designation;
-
-  const EmployeeDetailsPage({
-    super.key,
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.designation,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Employee Details'),
-      ),
-      body: DeskBackground(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 500),
-              child: FadeInDetails(
-                child: Container(
-                  padding: const EdgeInsets.all(25),
-                  decoration: BoxDecoration(
-                    color: const Color(0xF7FFFFFF),
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.18),
-                        blurRadius: 22,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircleAvatar(
-                        radius: 43,
-                        backgroundColor: Color(0xFFDCE8F3),
-                        child: Icon(
-                          Icons.person,
-                          size: 55,
-                          color: Color(0xFF244B70),
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      Text(
-                        name,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF243B53),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        designation,
-                        style: const TextStyle(
-                          color: Color(0xFF486581),
-                          fontSize: 16,
-                        ),
-                      ),
-                      const Divider(height: 32),
-                      _detail('Employee ID', 'EMP101'),
-                      _detail('Email', email),
-                      _detail('Phone', phone),
-                      _detail('Designation', designation),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () =>
-                              Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color(0xFF244B70),
-                            foregroundColor: Colors.white,
-                            padding:
-                                const EdgeInsets.symmetric(
-                              vertical: 14,
-                            ),
-                          ),
-                          child: const Text('Back to Profile'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _detail(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF334E68),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: Color(0xFF102A43),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// REUSABLE FADE AND SLIDE ANIMATION FOR DETAILS
-class FadeInDetails extends StatefulWidget {
-  final Widget child;
-
-  const FadeInDetails({
-    super.key,
-    required this.child,
-  });
-
-  @override
-  State<FadeInDetails> createState() => _FadeInDetailsState();
-}
-
-class _FadeInDetailsState extends State<FadeInDetails>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _fade;
-  late final Animation<Offset> _slide;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-
-    _fade = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeIn,
-    );
-
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeOutCubic,
-      ),
-    );
-
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fade,
-      child: SlideTransition(
-        position: _slide,
-        child: widget.child,
       ),
     );
   }
